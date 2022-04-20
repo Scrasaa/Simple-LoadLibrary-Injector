@@ -34,7 +34,7 @@ uintptr_t GetProcessID(const char* szProcessName)
     return processID;
 }
 
-int main()
+void inject()
 {
     std::string szDllPath = "";
     std::cout << "Enter the dll path: "; std::cin >> szDllPath; std::cout << '\n';
@@ -71,7 +71,28 @@ int main()
 
     if (hProcess)
         CloseHandle(hProcess);
-  
+
+
+}
+
+int main()
+{
+    bool bExit = false;
+
+    while (!bExit)
+    {
+        inject();
+        std::cout << "Inject again? y/n ?\n";
+        char cInp;
+
+        std::cin >> cInp;
+
+        if (cInp == 'n')
+            bExit = true;
+
+        Sleep(100);
+    }
+
     std::cout << "Ending Injection!\n";
 
     return 0;
