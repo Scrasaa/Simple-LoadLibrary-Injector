@@ -87,7 +87,7 @@ int main()
 
         std::cin >> cInp;
 
-        if (cInp == 'n')
+        if (cInp != 'y' || cInp != 'Y')
             bExit = true;
 
         Sleep(100);
