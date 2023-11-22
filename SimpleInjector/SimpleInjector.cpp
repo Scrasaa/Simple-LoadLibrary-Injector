@@ -50,21 +50,30 @@ void inject()
         Sleep(50);
     }
 
+    std::cout << "ProcessID found: " << processID << "...\n";
     std::cout << "Process \"" << szExe << "\" found initializing injection...\n";
+    std::cout << "Opening process...\n";
 
     HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, 0, processID);
 
     if (hProcess && hProcess != INVALID_HANDLE_VALUE)
     {
         void* pLoc = VirtualAllocEx(hProcess, 0, MAX_PATH, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+        std::cout << "Allocating memory...\n";
 
         if (pLoc)
             WriteProcessMemory(hProcess, pLoc, szDllPath.c_str(), szDllPath.length() + 1, NULL);
 
+        std::cout << "Writing to memory...\n";
+
         HANDLE hThread = CreateRemoteThread(hProcess, 0, 0, (LPTHREAD_START_ROUTINE)LoadLibraryA, pLoc, 0, 0);
+
+        std::cout << "Creating RemoteThread...\n";
 
         if (hThread)
             CloseHandle(hThread);
+
+        std::cout << "Closing Thread Handle...\n";
     }
 
     std::cout << "Successfully injected!\n";
@@ -72,7 +81,7 @@ void inject()
     if (hProcess)
         CloseHandle(hProcess);
 
-
+    std::cout << "Closing Process Handle...\n";
 }
 
 int main()
@@ -87,7 +96,7 @@ int main()
 
         std::cin >> cInp;
 
-        if (cInp != 'y' || cInp != 'Y')
+        if (cInp != 'y' && cInp != 'Y')
             bExit = true;
 
         Sleep(100);
