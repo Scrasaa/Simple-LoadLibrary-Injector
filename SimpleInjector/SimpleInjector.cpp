@@ -3,6 +3,82 @@
 #include <TlHelp32.h>
 #include <string>
 #include <sstream>
+#include <Windows.h>
+#include <iostream>
+
+// Function to load a DLL into the memory space of a target process
+bool ManualMapInject(DWORD processId, const char* dllPath) {
+    // Open the target process
+    HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processId);
+    if (hProcess == NULL) {
+        std::cout << "Failed to open the target process. Error code: " << GetLastError() << std::endl;
+        return false;
+    }
+
+    // Allocate memory in the target process for the DLL path
+    LPVOID dllPathAddr = VirtualAllocEx(hProcess, NULL, strlen(dllPath) + 1, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    if (dllPathAddr == NULL) {
+        std::cout << "Failed to allocate memory in the target process. Error code: " << GetLastError() << std::endl;
+        CloseHandle(hProcess);
+        return false;
+    }
+
+    // Write the DLL path to the allocated memory in the target process
+    if (!WriteProcessMemory(hProcess, dllPathAddr, dllPath, strlen(dllPath) + 1, NULL)) {
+        std::cout << "Failed to write the DLL path to the target process. Error code: " << GetLastError() << std::endl;
+        VirtualFreeEx(hProcess, dllPathAddr, 0, MEM_RELEASE);
+        CloseHandle(hProcess);
+        return false;
+    }
+
+    // Get the address of the LoadLibraryA function in the target process
+    HMODULE hKernel32 = GetModuleHandleA("kernel32.dll");
+    if (hKernel32 == NULL) {
+        std::cout << "Failed to get the address of kernel32.dll in the target process. Error code: " << GetLastError() << std::endl;
+        VirtualFreeEx(hProcess, dllPathAddr, 0, MEM_RELEASE);
+        CloseHandle(hProcess);
+        return false;
+    }
+    LPVOID loadLibraryAddr = GetProcAddress(hKernel32, "LoadLibraryA");
+    if (loadLibraryAddr == NULL) {
+        std::cout << "Failed to get the address of LoadLibraryA in the target process. Error code: " << GetLastError() << std::endl;
+        VirtualFreeEx(hProcess, dllPathAddr, 0, MEM_RELEASE);
+        CloseHandle(hProcess);
+        return false;
+    }
+
+    // Create a remote thread in the target process to execute the LoadLibraryA function with the DLL path as the argument
+    HANDLE hThread = CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)loadLibraryAddr, dllPathAddr, 0, NULL);
+    if (hThread == NULL) {
+        std::cout << "Failed to create a remote thread in the target process. Error code: " << GetLastError() << std::endl;
+        VirtualFreeEx(hProcess, dllPathAddr, 0, MEM_RELEASE);
+        CloseHandle(hProcess);
+        return false;
+    }
+
+    // Wait for the remote thread to finish
+    WaitForSingleObject(hThread, INFINITE);
+
+    // Clean up
+    VirtualFreeEx(hProcess, dllPathAddr, 0, MEM_RELEASE);
+    CloseHandle(hThread);
+    CloseHandle(hProcess);
+
+    return true;
+}
+
+int main() {
+    DWORD processId = 1234;  // Replace with the target process ID
+    const char* dllPath = "C:\\path\\to\\your.dll";  // Replace with the path to your DLL
+
+    if (ManualMapInject(processId, dllPath)) {
+        std::cout << "Injection successful!" << std::endl;
+    }
+    else {
+        std::cout << "Injection failed." << std::endl;
+    }
+        return 0;
+}
 
 uintptr_t GetProcessID(const char* szProcessName)
 {
