@@ -67,19 +67,6 @@ bool ManualMapInject(DWORD processId, const char* dllPath) {
     return true;
 }
 
-int main() {
-    DWORD processId = 1234;  // Replace with the target process ID
-    const char* dllPath = "C:\\path\\to\\your.dll";  // Replace with the path to your DLL
-
-    if (ManualMapInject(processId, dllPath)) {
-        std::cout << "Injection successful!" << std::endl;
-    }
-    else {
-        std::cout << "Injection failed." << std::endl;
-    }
-        return 0;
-}
-
 uintptr_t GetProcessID(const char* szProcessName)
 {
     uintptr_t processID = 0;
@@ -118,6 +105,9 @@ void inject()
     std::string szExe = "";
     std::cout << "Enter your target process name: "; std::cin >> szExe;
 
+    int iInput = 0;
+    bool bManualMapping = false;
+
     uintptr_t processID = 0;
 
     while (!processID)
@@ -129,11 +119,16 @@ void inject()
     std::cout << "ProcessID found: " << processID << "...\n";
     std::cout << "Process \"" << szExe << "\" found initializing injection...\n";
     std::cout << "Opening process...\n";
+    std::cout << "Do you want to use 1. manual mapping or 2. standard LoadLibrary injection? (1/2): "; std::cin >> iInput; std::cout << '\n';
+
+    if (iInput == 1) {
+        ManualMapInject(processID, szDllPath.c_str());
+    }
 
     HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, 0, processID);
 
-    if (hProcess && hProcess != INVALID_HANDLE_VALUE)
-    {
+    if (hProcess && hProcess != INVALID_HANDLE_VALUE && iInput == 2)
+    {   
         void* pLoc = VirtualAllocEx(hProcess, 0, MAX_PATH, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
         std::cout << "Allocating memory...\n";
 
